@@ -1,0 +1,38 @@
+name: Label Commenter
+
+on:
+  issues:
+    types: [labeled, opened]
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: github.event.label.name != null
+    steps:
+      - name: Check label and post comment
+        env:
+          LABEL: ${{ github.event.label.name }}
+          ISSUE_NUMBER: ${{ github.event.issue.number }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          COMMENT=""
+          case "$LABEL" in
+            "enhancement")
+              COMMENT="Thanks for the enhancement suggestion! We appreciate your input."
+              ;;
+            "completed")
+              COMMENT="This issue has been resolved. Thank you for your contribution!"
+              ;;
+            "documentation")
+              COMMENT="Thank you for flagging this documentation issue. We will update it soon."
+              ;;
+            *)
+              echo "No comment mapping for label: $LABEL"
+              exit 0
+              ;;
+          esac
+          curl -X POST \
+            -H "Authorization: token $GITHUB_TOKEN" \
+            -H "Accept: application/vnd.github.v3+json" \
+            https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE_NUMBER/comments \
+            -d "{\"body\": \"$COMMENT\"}"
